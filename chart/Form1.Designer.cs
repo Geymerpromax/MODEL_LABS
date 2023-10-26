@@ -74,7 +74,7 @@
             series1.Name = "1";
             series1.YValuesPerPoint = 2;
             this.chart1.Series.Add(series1);
-            this.chart1.Size = new System.Drawing.Size(814, 179);
+            this.chart1.Size = new System.Drawing.Size(988, 624);
             this.chart1.TabIndex = 0;
             title1.Name = "Title1";
             title1.Text = "Очередь";
@@ -147,10 +147,10 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1012, 665);
-            this.Controls.Add(this.chart3);
-            this.Controls.Add(this.chart2);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.chart1);
+            this.Controls.Add(this.chart2);
+            this.Controls.Add(this.chart3);
             this.Name = "Form1";
             this.Text = "Form1";
             ((System.ComponentModel.ISupportInitialize)(this.chart1)).EndInit();

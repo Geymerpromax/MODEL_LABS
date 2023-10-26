@@ -25,19 +25,7 @@ namespace chart
         [return: MarshalAs(UnmanagedType.Bool)]
         static extern bool FreeConsole();
 
-        static int employmentFirstOperator = 0;
-        static int employmentSecondOperator = 0;
-        //static int timeTalkFirst = 0;
-        //static int timeTalkSecond = 0;
-        static int timerWorkDay = 0;
-        static int WorkDay = 1;
-
-        static int queue = 0;
-
-        static System.Timers.Timer timerWork;
-        static System.Timers.Timer timerUpdater;
-        static System.Timers.Timer timerTalkFirst;
-        static System.Timers.Timer timerTalkSecond;
+        
         public Form2()
         {
             InitializeComponent();
@@ -59,174 +47,87 @@ namespace chart
         {            
             Task.Factory.StartNew(Lab4);          
         }
-        static int RandomiseTimeTalk()
-        {
-            Random rand = new Random();
-            int time = rand.Next(5000, 5000);
-            return time;
-        }
-        static bool RandomiseClient()
-        {
-            Random rand = new Random();
-            int client = rand.Next(0, 2);
-            if (WorkDay == 0)
-            {
-                return false;
-            }
-            return Convert.ToBoolean(client);
-        }
-      
-        private static void TimerWorkEvent(Object source, ElapsedEventArgs e)
-        {
-            WorkDay = 0;
-            Console.WriteLine("\nРабочий день закончен в {0:HH:mm:ss}\nЖдём завершения текущих звонков, новые звонки не принимаются.\n", e.SignalTime);
 
-            timerWork.Stop();
-            timerWork.Dispose();
-        }
-        private static void TimeTalkFirstEvent(Object source, ElapsedEventArgs e)
-        {
-            queue--;
-            Console.WriteLine("Звонок первому оператору завершен в {0:HH:mm:ss}", e.SignalTime);
-            Console.WriteLine("Очередь обновлена.\nТекущая очередь: {0}", queue);
-            employmentFirstOperator = 0;
-            timerTalkFirst.Stop();
-            timerTalkFirst.Dispose();
-        }
-        private static void TimeTalkSecondEvent(Object source, ElapsedEventArgs e)
-        {
-            queue--;
-            Console.WriteLine("Звонок второму оператору завершен в {0:HH:mm:ss}", e.SignalTime);
-            Console.WriteLine("Очередь обновлена.\nТекущая очередь: {0}", queue);
-            employmentSecondOperator = 0;
-            timerTalkSecond.Stop();
-            timerTalkSecond.Dispose();
-        }
-        private static void timerUpdaterEvent(Object source, ElapsedEventArgs e)
-        {
-            switch (RandomiseClient())
-            {
-                case true:
-                    Console.WriteLine("{0:HH:mm:ss} Поступил звонок ", e.SignalTime);
-                    if (WorkDay == 0)
-                    {
-                        Console.WriteLine("Рабочий день был закончен, звонки больше не принимаются...");
-                        break;
-                    }
-                    queue++;
-                    Console.WriteLine("Очередь обновлена.\nТекущая очередь: {0}", queue);
-                    if (employmentFirstOperator == 0)
-                    {
-                        Console.WriteLine("Первый оператор принял звонок.");
-                        employmentFirstOperator = 1;
-                        timerTalkFirst = new System.Timers.Timer(RandomiseTimeTalk());
-                        timerTalkFirst.Elapsed += TimeTalkFirstEvent;
-                        timerTalkFirst.AutoReset = true;
-                        timerTalkFirst.Enabled = true;
-                        break;
-                    }
-                    if (employmentSecondOperator == 0)
-                    {
-                        Console.WriteLine("Второй оператор принял звонок.");
-                        employmentSecondOperator = 1;
-                        timerTalkSecond = new System.Timers.Timer(RandomiseTimeTalk());
-                        timerTalkSecond.Elapsed += TimeTalkSecondEvent;
-                        timerTalkSecond.AutoReset = true;
-                        timerTalkSecond.Enabled = true;
-                        break;
-                    }
-                    break;
-                case false:
-                    Console.WriteLine("{0:HH:mm:ss} ----- ", e.SignalTime);
-                    break;
-            }
-            if (employmentFirstOperator == 0 && employmentSecondOperator == 0 && WorkDay == 0)
-            {
-                Console.WriteLine("\nВсе звонки завершены");
-                Console.WriteLine("Необслужено клиентов: {0}", queue);
-                timerUpdater.Stop();
-                timerUpdater.Dispose();
-            }
-        }
 
         private void Lab1()
-        {
-            [DllImport("kernel32.dll", SetLastError = true)]
-            [return: MarshalAs(UnmanagedType.Bool)]
-            static extern bool AllocConsole();
-
-            [DllImport("kernel32.dll", SetLastError = true)]
-            [return: MarshalAs(UnmanagedType.Bool)]
-            static extern bool FreeConsole();
-
+        {          
             // Запускаем консоль.        
             AllocConsole();
 
-            List<int> arrayNum = new List<int>();
+            List<double> arrayPointOne = new List<double>();
+            List<double> arrayPointTwo = new List<double>();
 
             const double g = 9.8; // Ускорение свободного падения 
-            const double y0 = 3000; // Начальная высота 
-            const double v0 = 90; // Начальная скорость 
-            const double time_update = 1; // Шаг по времени 
-            const double m = 5; // Масса зонда 
+            const double y0 = 2000; // Начальная высота 
+            const double v0 = 50; // Начальная скорость 
+            const double dt = 1; // Шаг по времени 
+            const double m = 15; // Масса зонда 
+
             const double p = 1.2754; // Плотность воздуха
-            const double k = 0.9; // коэффициент сопротивления воздуха
-
-            const double C_d = 1; // Коэффициент сопротивления драгоценности парашюта
+            const double c = 0.55; // безразмерный коэфициент лобового сопротивления для полусферы
             const double s = 80; // Площадь парашюта
-
+            double k = 0.5 * c * s * p; // коэффициент сопротивления воздуха
+            
 
             double t = 0; // Время
-            double a = 0; // Ускорение 
+            //double a = 0; // Ускорение 
+            double v = v0; // Скорость
+            double y = y0; // Высота(Путь)
 
-            double t_rise = 0; // Время подъёма
-            double t_fall = 0; // Время падения
+            double tRise = 0; // Время подъёма
+            double tFall = 0; // Время падения
+            double tGlobal = 0; // Всё время движения
             double yMax = 0; // Макс. высота
-            double v = 0; // Скорость
-            double y = 0; // Высота
-            double v_equilibrium = 0; // Скорость равновесия.
-            // Это скорость, при которой ускорение свободного падения (g) и сила сопротивления воздуха равны.
-
+            
             Console.WriteLine("Зонд выпущен!");
 
-            t_rise = v0 / g;
-            yMax = y0 + (v0 * v0 / (2 * g));
-
-            for (; t < t_rise; t += time_update)
-            {
+            tRise = v0 / g;
+          
+            for (; t < tRise; t += dt)
+            {               
                 v = v0 - g * t;
-                y = y0 + v0 * t - (g * t * t) / 2;
+                y = y0 + v0 * t - 0.5 * g * t * t;
                 Console.WriteLine($"Прошедшее время {t} сек, Скорость {v} м/с, Высота {y} м");
+                arrayPointOne.Add(t);
+                arrayPointOne.Add(v);
+
+                arrayPointTwo.Add(t);
+                arrayPointTwo.Add(y);
             }
+            v = v0 - g * tRise;
+            yMax = y0 + v0 * tRise - 0.5 * g * tRise * tRise;
+            y = yMax;
 
-            t = t_rise;
-            v = v0 - g * t;
-            y = y0 + v0 * t - (g * t * t) / 2;
+            arrayPointOne.Add(t);
+            arrayPointOne.Add(v);
 
-            Console.WriteLine($"Прошедшее время {t} сек, Скорость {v} м/с, Высота {y} м");
+            arrayPointTwo.Add(t);
+            arrayPointTwo.Add(y);
+
+            Console.WriteLine($"Прошедшее время {tRise} сек, Скорость {v} м/с, Высота {yMax} м\n");
             Console.WriteLine("Парашют раскрыт!");
-            //Console.WriteLine($"Время подъёма {t_rise} сек \nМаксимальная высота {yMax} м");
+            Console.WriteLine($"Время подъёма {tRise} сек \nМаксимальная высота {yMax} м\n");
 
-            t_fall = (2 * v0) / (g * (1 - Math.Pow(Math.E, -(k * m / (2 * s)) * t)));
 
-            //t_fall = (m * g / (C_d * p * s)) * Math.Log(1 + (C_d * p * s / m) * v0);
-            Console.WriteLine($"Время падения {t_fall} сек");
-
-            for (t = 0; true; t += time_update)
+            for (double t1 = 0; y <= yMax; t1 += dt)
             {
-                double v1 = (m * g / (C_d * p * s)) * (1 - Math.Pow(Math.E, -C_d * p * s / m * t));
-                v = g * (1 - Math.Pow(Math.E, -(k * m / (2 * s)) * t)) / (k * m / (2 * s));
+                t += dt;
+                v =  m * g / k * (1 - Math.Exp(-k * t1 / m));
+                y = (m * g / k) * (t + (m / (k * k)) * (1 - Math.Exp(-k * t / m)));
+                Console.WriteLine($"Прошедшее время {t} сек, Скорость {v} м/с, Высота {yMax - y} м");
 
-                double y1 = y0 - (0.5 * g * t * t) - (0.5 * p * s * C_d * v1 * v1 * t * t / m);
-                y = k * m * (v0 - v) *t / (2 * s);
+                arrayPointOne.Add(t);
+                arrayPointOne.Add(v);
 
-                double a1 = (m * g - 0.5 * p * s * C_d * v1 * v1) / m;
-                a = g * (1 - Math.Pow(Math.E, -((k * m) / (2 * s)) * t)) / m;
-                double a3 = (m * g - (0.5 * p * v * v * C_d * s)) / m;
-                Console.WriteLine($"Прошедшее время {t} сек, Скорость {v} м/с, Высота {y} м, Ускорение {a}");
+                arrayPointTwo.Add(t);
+                arrayPointTwo.Add(y);
             }
 
-            Application.Run(new Form1(arrayNum));
+            Console.WriteLine($"Время падения {t} сек");
+            
+            
+
+            Application.Run(new Form1(arrayPointOne, arrayPointTwo, new List<string> { "Зависимость скорости от времени", "Зависимость расстояния от времени" }));
         }
         private void Lab2()
         {
@@ -315,6 +216,19 @@ namespace chart
         }
         private void Lab4()
         {
+            int employmentFirstOperator = 0;
+            int employmentSecondOperator = 0;
+            //static int timeTalkFirst = 0;
+            //static int timeTalkSecond = 0;
+            int timerWorkDay = 0;
+            int WorkDay = 1;
+
+            int queue = 0;
+
+            System.Timers.Timer timerWork;
+            System.Timers.Timer timerUpdater;
+            System.Timers.Timer timerTalkFirst;
+            System.Timers.Timer timerTalkSecond;
             //int clients = 0;
             //Console.WriteLine("Введите длину рабочего дня в милисекундах: ");
             //timerWorkDay = Convert.ToInt32(Console.ReadLine());
@@ -339,8 +253,95 @@ namespace chart
             timerUpdater.Enabled = true;
 
             Console.ReadLine();
+
+            int RandomiseTimeTalk()
+            {
+                Random rand = new Random();
+                int time = rand.Next(5000, 5000);
+                return time;
+            }
+            bool RandomiseClient()
+            {
+                Random rand = new Random();
+                int client = rand.Next(0, 2);
+                if (WorkDay == 0)
+                {
+                    return false;
+                }
+                return Convert.ToBoolean(client);
+            }
+            void TimerWorkEvent(Object source, ElapsedEventArgs e)
+            {
+                WorkDay = 0;
+                Console.WriteLine("\nРабочий день закончен в {0:HH:mm:ss}\nЖдём завершения текущих звонков, новые звонки не принимаются.\n", e.SignalTime);
+
+                timerWork.Stop();
+                timerWork.Dispose();
+            }
+            void TimeTalkFirstEvent(Object source, ElapsedEventArgs e)
+            {
+                queue--;
+                Console.WriteLine("Звонок первому оператору завершен в {0:HH:mm:ss}", e.SignalTime);
+                Console.WriteLine("Очередь обновлена.\nТекущая очередь: {0}", queue);
+                employmentFirstOperator = 0;
+                timerTalkFirst.Stop();
+                timerTalkFirst.Dispose();
+            }
+            void TimeTalkSecondEvent(Object source, ElapsedEventArgs e)
+            {
+                queue--;
+                Console.WriteLine("Звонок второму оператору завершен в {0:HH:mm:ss}", e.SignalTime);
+                Console.WriteLine("Очередь обновлена.\nТекущая очередь: {0}", queue);
+                employmentSecondOperator = 0;
+                timerTalkSecond.Stop();
+                timerTalkSecond.Dispose();
+            }
+            void timerUpdaterEvent(Object source, ElapsedEventArgs e)
+            {
+                switch (RandomiseClient())
+                {
+                    case true:
+                        Console.WriteLine("{0:HH:mm:ss} Поступил звонок ", e.SignalTime);
+                        if (WorkDay == 0)
+                        {
+                            Console.WriteLine("Рабочий день был закончен, звонки больше не принимаются...");
+                            break;
+                        }
+                        queue++;
+                        Console.WriteLine("Очередь обновлена.\nТекущая очередь: {0}", queue);
+                        if (employmentFirstOperator == 0)
+                        {
+                            Console.WriteLine("Первый оператор принял звонок.");
+                            employmentFirstOperator = 1;
+                            timerTalkFirst = new System.Timers.Timer(RandomiseTimeTalk());
+                            timerTalkFirst.Elapsed += TimeTalkFirstEvent;
+                            timerTalkFirst.AutoReset = true;
+                            timerTalkFirst.Enabled = true;
+                            break;
+                        }
+                        if (employmentSecondOperator == 0)
+                        {
+                            Console.WriteLine("Второй оператор принял звонок.");
+                            employmentSecondOperator = 1;
+                            timerTalkSecond = new System.Timers.Timer(RandomiseTimeTalk());
+                            timerTalkSecond.Elapsed += TimeTalkSecondEvent;
+                            timerTalkSecond.AutoReset = true;
+                            timerTalkSecond.Enabled = true;
+                            break;
+                        }
+                        break;
+                    case false:
+                        Console.WriteLine("{0:HH:mm:ss} ----- ", e.SignalTime);
+                        break;
+                }
+                if (employmentFirstOperator == 0 && employmentSecondOperator == 0 && WorkDay == 0)
+                {
+                    Console.WriteLine("\nВсе звонки завершены");
+                    Console.WriteLine("Необслужено клиентов: {0}", queue);
+                    timerUpdater.Stop();
+                    timerUpdater.Dispose();
+                }
+            }
         }
-
-
     }
 }
